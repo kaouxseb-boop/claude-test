@@ -1,0 +1,15 @@
+{
+  "result": "file/decode QA PASS",
+  "seconds": 5,
+  "frames": 150,
+  "resolution": [
+    1080,
+    1920
+  ],
+  "audio": "NONE (silent technical preview)",
+  "geography": "Esri World Imagery + Natural Earth GeoJSON",
+  "routes": "illustrative interpretation, not ancient GPS",
+  "branding": "original licensed logo/mascot not supplied in this repository",
+  "human_viewing": "not yet independently confirmed",
+  "video_sha256": "0240cf417c40ed206beddf0405e8868ac68c5a3cccb254c211323c415abddedf"
+}
