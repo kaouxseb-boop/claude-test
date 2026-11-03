@@ -22,7 +22,7 @@ TILE_Y0,TILE_Y1=5,15
 WORLD=256*(2**TILE_Z)
 OUT=Path("dist")
 OUT.mkdir(parents=True,exist_ok=True)
-UA_URL="https://raw.githubusercontent.com/wmgeolab/geoBoundaries/main/releaseData/gbOpen/UKR/ADM0/geoBoundaries-UKR-ADM0.geojson"
+UA_URL="https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/main/releaseData/gbOpen/UKR/ADM0/geoBoundaries-UKR-ADM0.geojson"
 NE_URL="https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson"
 FONT_URL="https://raw.githubusercontent.com/google/fonts/main/ofl/sarabun/Sarabun-Bold.ttf"
 FLAG_URL="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Flag_of_the_Soviet_Union.svg/640px-Flag_of_the_Soviet_Union.svg.png"
@@ -259,7 +259,9 @@ def main():
     FONT_PATH=OUT/"Sarabun-Bold.ttf"
     FONT_PATH.write_bytes(fetch(FONT_URL))
     print("Map source: geoBoundaries Ukraine and Natural Earth",flush=True)
-    uk_data=json.loads(fetch(UA_URL))
+    ua_bytes=fetch(UA_URL)
+    print('Ukraine geometry bytes:',len(ua_bytes),'signature:',repr(ua_bytes[:12]),flush=True)
+    uk_data=json.loads(ua_bytes)
     if uk_data.get("type")=="FeatureCollection":
         ua_geom=uk_data["features"][0]["geometry"]
     elif uk_data.get("type")=="Feature":
