@@ -20,6 +20,8 @@ PLACES['xiachengfu']=('เซี่ยเฉิงฝู่',116.15,33.57) # are
 PLACES['peixian']=('เพ่ย',116.93,34.73)
 PLACES['wuguan']=('ด่านอู่กวน',110.715,33.695)
 PLACES['hangu']=('ด่านหานกู่',110.925,34.639) # Qin pass at Wangduo, Lingbao, NOT Han pass at Xin'an
+PLACES['xi']=('ซี',109.33,34.47) # locality proxy NE of Lintong, west bank of the Xi stream
+PLACES['caoyang']=('เฉาหยาง',111.00,34.68) # locality proxy NE of Lingbao, beyond Qin Hangu eastward
 PLACES['aocang']=('อ๋าวชาง',113.52,34.91) # locality proxy near old Xingyang
 # CHGIS point features for the named ancient counties, queried at 209 BCE.
 geo_names={'qi':'蕲县','zhi':'銍县','zan':'酇县','ku':'苦县','zhe':'柘县','qiao':'谯县','chen':'陈县','xingyang':'荥阳县','xianyang':'咸阳县','julu':'巨鹿县'}
@@ -184,7 +186,10 @@ def draw_scene(i,b):
 def render_scene(i,b):
  n=round(b['end']*FPS)-round(b['start']*FPS);dur=n/FPS
  p=O/f'seg_{i:02}.mp4'
- if p.exists() and os.environ.get('FORCE')!='1':return p
+ if p.exists() and p.stat().st_size>100000 and os.environ.get('FORCE')!='1':
+  check=subprocess.run(['ffprobe','-v','error','-count_frames','-select_streams','v:0','-show_entries','stream=nb_read_frames','-of','csv=p=0',str(p)],capture_output=True,text=True)
+  if check.returncode==0 and check.stdout.strip()==str(n):return p
+ target=O/f'seg_{i:02}.building.mp4'
  p0,p1=draw_scene(i,b)
  army=sprite('qin' if b.get('side')=='qin' else 'rebels',230) if b['kind']!='death' else Image.new('RGBA',(230,230))
  army.save(O/f'army_{i:02}.png')
@@ -212,7 +217,10 @@ def render_scene(i,b):
  args=[]
  for f in [O/f'bg_{i:02}.png',O/f'army_{i:02}.png',O/f'portrait_{i:02}.png',O/f'state_{i:02}.png',O/f'enemy_{i:02}.png']:
   args+=['-loop','1','-framerate',FPS,'-i',f]
- ff(args+['-filter_complex_threads','1','-filter_complex',';'.join(filters),'-map','[v]','-frames:v',n,'-an','-c:v','libx264','-threads','3','-preset','veryfast','-crf','17','-pix_fmt','yuv420p',p])
+ ff(args+['-filter_complex_threads','1','-filter_complex',';'.join(filters),'-map','[v]','-frames:v',n,'-an','-c:v','libx264','-threads','3','-preset','veryfast','-crf','17','-pix_fmt','yuv420p',target])
+ q=subprocess.run(['ffprobe','-v','error','-count_frames','-select_streams','v:0','-show_entries','stream=nb_read_frames','-of','csv=p=0',str(target)],capture_output=True,text=True)
+ assert q.returncode==0 and q.stdout.strip()==str(n),(i,n,q.stdout,q.stderr)
+ os.replace(target,p)
  print('scene',i,'done',n,flush=True);return p
 
 def main():
@@ -233,6 +241,6 @@ def main():
  output=O/'ChenSheng_V83_FULL_60FPS_REVIEW.mp4'
  ff(['-safe','0','-f','concat','-i',O/'all.ffconcat','-i',ref,'-stream_loop','-1','-c:v','libvpx-vp9','-i',mascot,
      '-filter_complex_threads','1','-filter_complex',f"[0:v]ass=filename={O/'captions.ass'}:fontsdir={A}[sub];[2:v]scale=195:-1,format=rgba[mas];[sub][mas]overlay=W-w-28:H-h-25:shortest=0,format=yuv420p[v]",
-     '-map','[v]','-map','1:a:0','-c:v','libx264','-threads','6','-preset','veryfast','-crf','16','-c:a','copy','-frames:v',round(D*FPS),'-movflags','+faststart',output])
+     '-map','[v]','-map','1:a:0','-c:v','libx264','-threads','6','-preset','veryfast','-crf','16','-c:a','copy','-frames:v',round(D*FPS),'-movflags','+faststart','-progress',O/'mux_progress.txt',output])
  print('OUTPUT',output,flush=True)
 if __name__=='__main__':main()
