@@ -1,0 +1,22 @@
+{
+  "status": "PASS encoded MP4 + audio video streams and decode",
+  "result": "technical 5-second preview (NOT full 402.12-second narration)",
+  "duration_video_sec": 5.0,
+  "duration_audio_sec": 5.0,
+  "frames": 150,
+  "resolution": [
+    1080,
+    1920
+  ],
+  "fps": 30,
+  "map": "Esri World Imagery z7 + Natural Earth modern reference geography",
+  "geohistory": "ancient Qin state boundary not asserted; modern country borders for geographic orientation only",
+  "reference_pins": "Xianyang city point / Dazexiang approximate modern-region proxy",
+  "jedi": "individually colored modern-country borders; three glow layers with sharp core",
+  "sharpness": "3240x5760 source, LANCZOS downsample, H.264 CRF16",
+  "audio": "first 5s excerpt from user-supplied Chen Sheng original WAV encoded AAC",
+  "branding": "original channel logo/mascot unavailable; technical preview only",
+  "subtitles": "intro editorial lower third; no claim of speech-level ASR alignment",
+  "AI_icon": "generated historical 2D Chen Sheng PNG with transparency",
+  "mp4_sha256": "c2d552c5a9a6b0ced6753863d45697c574992aff3206130b878b2a716ccf3767"
+}
