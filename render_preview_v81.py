@@ -300,7 +300,7 @@ def grab_movie_samples(filename):
     (OUT/"qa.json").write_text(json.dumps({
         "frames":frames,"seconds":duration,"width":W,"height":H,
         "audio":"intentionally silent visual test, not source-voice aligned",
-        "geography":"geoBoundaries UKR ADM0 incl Crimea; Natural Earth other shapes",
+        "geography":"Present-day geoBoundaries UKR ADM0 incl Crimea is a reference frame, NOT exact Ukrainian SSR administrative borders in 1932; Natural Earth other shapes",
         "imagery":"Esri World Imagery tile server, geographically projected",
         "paths":"Moscow policy arrow is conceptual order direction; not wheat shipping route or a verified travel path",
         "status":"encoded file/decode QA only; generated farm is interpretive; not a voice-aligned final"},ensure_ascii=False,indent=2),encoding="utf8")
@@ -357,7 +357,9 @@ def main():
             ua_mask=drawmask(ua_rings,cent,zoom)
             # Geography-fixed historical Soviet flag: full Ukrainian silhouette, then fades
             # back to legible terrain as confiscation starts.
-            flag_fade=0.63-0.44*ease((t-1.00)/1.23)
+            flag_fade=0.63*(1.0-ease((t-1.05)/1.97))
+            # Reveal warm transparent thematic shading without altering satellite terrain.
+            tinted(im,ua_mask,(37,109,143),int(78*ease((t-1.40)/1.3)))
             geo_flag_layer(im,ua_mask,cent,zoom,FLAG,flag_fade)
             outline(im,ru_rings,cent,zoom,(158,138,150),3,10)
             outline(im,ua_rings,cent,zoom,(115,243,255),5,14)
@@ -366,7 +368,7 @@ def main():
             mx,my=screen(merc(*moscow),cent,zoom)
             if -180<mx<W+100 and -150<my<H:
                 label(im,"มอสโก",mx-75,my+33,41)
-            ux,uy=screen(merc(32.15,48.75),cent,zoom)
+            ux,uy=screen(merc(35.4,48.1),cent,zoom)
             if 100<ux<W-100 and 100<uy<H-130:
                 label(im,"ยูเครน",ux,uy,49)
             # Moscow -> Ukrainian SSR represents POLICY ORDERS, not physical grain shipping.
@@ -388,9 +390,9 @@ def main():
                 mini_caption(im,t,ease((t-3.12)/0.22),"ชาวนาถูกยึดเสบียง!",True)
             # Plain small evidence key, not a full-width card.
             dr=ImageDraw.Draw(im)
-            dr.text((43,1801),"● พิกัดและพรมแดนจริง • ภาพชาวนาเป็นภาพจำลอง",font=font(26),
+            dr.text((43,1801),"ฐานแผนที่: พรมแดนปัจจุบัน • ภาพชาวนาเป็นภาพจำลอง",font=font(25),
                     fill=(226,229,225),stroke_width=2,stroke_fill=(9,13,16))
-            dr.text((43,1852),"ลูกศรหมายถึงคำสั่งรัฐ ไม่ใช่เส้นทางขนข้าว",font=font(25),
+            dr.text((43,1852),"ลูกศรคือทิศทางคำสั่ง ไม่ใช่เส้นทางขนข้าว",font=font(25),
                     fill=(216,223,225),stroke_width=2,stroke_fill=(9,13,16))
             encoder.stdin.write(im.convert("RGB").tobytes())
             if frame%30==0:
