@@ -7,9 +7,11 @@
     1920
   ],
   "audio": "NONE (silent technical preview)",
-  "geography": "Esri World Imagery + Natural Earth GeoJSON",
+  "geography": "Esri World Imagery tiles z7 + Natural Earth GeoJSON",
+  "sharpness": "3x source canvas; LANCZOS final sampling; H.264 CRF16",
+  "jedi_border": "three layers: 12x/3x radius cyan blooms + sharp pale core",
   "routes": "illustrative interpretation, not ancient GPS",
   "branding": "original licensed logo/mascot not supplied in this repository",
   "human_viewing": "not yet independently confirmed",
-  "video_sha256": "0240cf417c40ed206beddf0405e8868ac68c5a3cccb254c211323c415abddedf"
+  "video_sha256": "af01467584ec0bad1f2680a23db7f8674b0f90a2d13ebedd0867bb00674d7bee"
 }
