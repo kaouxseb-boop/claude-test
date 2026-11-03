@@ -12,7 +12,7 @@ OUT.mkdir(parents=True,exist_ok=True)
 TILE_URL="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
 GEO_URL="https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson"
 FONT_URL="https://raw.githubusercontent.com/google/fonts/main/ofl/sarabun/Sarabun-Bold.ttf"
-BBOX=(95.5,19.5,123.0,44.0)
+BBOX=(98.8,19.5,126.3,44.0)
 DAZE=(117.22,33.78)  # approximation: Dazexiang/Suzhou Anhui region, NOT ancient surveyed location
 XIANYANG=(108.72,34.34)
 CHEN=(114.90,33.74)
@@ -141,7 +141,7 @@ def halo(img,loc,c,z,rgb,phase):
     if not (-80<x<W+80 and -80<y<H+80):return
     mask=Image.new("L",(W,H),0)
     d=ImageDraw.Draw(mask)
-    radius=26+25*phase
+    radius=36+33*phase
     d.ellipse((x-radius,y-radius,x+radius,y+radius),outline=225,width=5)
     wide=mask.filter(ImageFilter.GaussianBlur(18))
     img.paste(rgb,(0,0),wide.point(lambda a:min(190,int(a*.82))))
@@ -166,7 +166,7 @@ def frame(base,icon,path,t):
     # Coordinates are approximate pins using present-day geography.
     for ll,label,col,dx,dy in [
         (XIANYANG,"เสียนหยาง · เมืองหลวงฉิน",(255,213,109),-10,-47),
-        (DAZE,"ต้าเจ๋อเซียง · จุดเริ่มกบฏ",(255,116,130),-8,44)]:
+        (DAZE,"ต้าเจ๋อเซียง · จุดเริ่มกบฏ",(255,116,130),-150,44)]:
         x,y=pos(ll,c,z)
         if 60<x<W-60 and 300<y<H-450:
             txt(d,label,x+dx,y+dy,30,path,col,"mm",3)
