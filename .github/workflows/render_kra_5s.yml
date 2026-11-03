@@ -1,0 +1,54 @@
+name: Render India-Kra V8 5s real map
+on:
+  push:
+    paths:
+      - 'kra/render.py'
+      - 'kra/README.md'
+      - '.github/workflows/render_kra_5s.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Pillow and FFmpeg
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install Pillow
+          if ! command -v ffmpeg >/dev/null; then sudo apt-get update && sudo apt-get install -y ffmpeg; fi
+          ffmpeg -version | head -1
+      - name: Render 150 frames from real imagery and Natural Earth
+        run: python kra/render.py
+      - name: Upload MP4, contact sheet and automated QA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: india-kra-v8-5s
+          path: |
+            kra/output/V8_India_Kra_5sec_SILENT.mp4
+            kra/output/contact_sheet.jpg
+            kra/output/qa.json
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Publish successful preview without touching Holodomor files
+        if: success()
+        run: |
+          mkdir -p kra/preview
+          cp kra/output/V8_India_Kra_5sec_SILENT.mp4 kra/preview/
+          cp kra/output/contact_sheet.jpg kra/preview/
+          cp kra/output/qa.json kra/preview/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add kra/preview/
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish verified 5s India-Kra real-map preview"
+            git push
+          fi
