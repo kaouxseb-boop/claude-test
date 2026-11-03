@@ -25,7 +25,7 @@ OUT.mkdir(parents=True,exist_ok=True)
 UA_URL="https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/main/releaseData/gbOpen/UKR/ADM0/geoBoundaries-UKR-ADM0.geojson"
 NE_URL="https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson"
 FONT_URL="https://raw.githubusercontent.com/google/fonts/main/ofl/sarabun/Sarabun-Bold.ttf"
-FLAG_URL="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Flag_of_the_Soviet_Union.svg/640px-Flag_of_the_Soviet_Union.svg.png"
+FLAG_URL="https://commons.wikimedia.org/wiki/Special:Redirect/file/Flag_of_the_Soviet_Union_(1924).svg"
 TILE_URL="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
 
 def fetch(url, retries=4):
@@ -275,7 +275,10 @@ def main():
     ru_rings=prep_geom(rus_feature["geometry"])
     # Small public example graphics; no user logo, mascot, voice, or private assets.
     try:
-        FLAG=Image.open(io.BytesIO(fetch(FLAG_URL))).convert("RGBA")
+        import cairosvg
+        flag_svg=fetch(FLAG_URL)
+        print('Flag source signature:',repr(flag_svg[:60]),flush=True)
+        FLAG=Image.open(io.BytesIO(cairosvg.svg2png(bytestring=flag_svg,output_width=1200,output_height=600))).convert("RGBA")
         print("Loaded historical Soviet flag artwork",flush=True)
     except Exception as error:
         raise RuntimeError("Cannot verify Soviet flag source; refusing to substitute an incorrect emblem") from error
