@@ -194,9 +194,13 @@ def frame(base,icon,path,t):
     ]
     cue=next((lines for start,end,lines in cues if start<=t<end),cues[-1][2])
     line_height=61
-    base_y=H-224 if len(cue)==2 else H-191
+    base_y=H-370 if len(cue)==2 else H-337
+    cue_start=next(start for start,end,lines in cues if start<=t<end)
+    elapsed=t-cue_start
+    # Short bounce (about 0.18 sec); no camera zoom or long subtitle animation.
+    pulse=1.0 + 0.085*math.sin(math.pi*min(1.0,elapsed/0.18)) if elapsed<0.18 else 1.0
     for j,(line,color) in enumerate(cue):
-        txt(d,line,W/2,base_y+j*line_height,49,path,color,"mm",5)
+        txt(d,line,W/2,base_y+j*line_height,round(49*pulse),path,color,"mm",5)
     d.rectangle((0,H-7,int(W*t/SECONDS),H),fill=(62,233,247))
     return img.convert("RGB")
 
@@ -221,7 +225,7 @@ def qa(mp4):
       "sharpness":"3240x5760 source, LANCZOS downsample, H.264 CRF16",
       "audio":"first 5s excerpt from user-supplied Chen Sheng original WAV encoded AAC",
       "branding":"original channel logo/mascot unavailable; technical preview only",
-      "subtitles":"compact timed 1-2 line cues, no large lower-third; editorial timing pending speech alignment",
+      "subtitles":"raised compact 1-2 line cues with 0.18-second pop; editorial timing pending speech alignment",
       "AI_icon":"generated historical 2D Chen Sheng PNG with transparency",
       "mp4_sha256":hashlib.sha256(mp4.read_bytes()).hexdigest()}
     (OUT/"qa.json").write_text(json.dumps(report,indent=2,ensure_ascii=False),encoding="utf-8")
