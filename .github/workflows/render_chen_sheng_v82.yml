@@ -1,0 +1,92 @@
+name: Chen Sheng V82 60fps animated map production
+on:
+  push:
+    paths:
+      - 'chen_sheng_full/render_v82.py'
+      - '.github/workflows/render_chen_sheng_v82.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+      MODE: preview
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install renderer
+        run: |
+          python -m pip install Pillow
+          python -m py_compile chen_sheng_full/render_v82.py
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-thai-tlwg
+      - name: Fetch measured narration ASR artifact
+        run: |
+          mkdir -p chen_sheng_full/timing
+          gh run download 41647684315 -n ChenSheng-V82-Timing-QA -D chen_sheng_full/timing
+          test -s chen_sheng_full/timing/asr_segments.json
+      - name: Render and decode 12-second movement test
+        run: python chen_sheng_full/render_v82.py
+      - name: Upload prototype and native inspection frames
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChenSheng-V82-12s-motion-test
+          path: |
+            chen_sheng_full/v82/ChenSheng_V82_12s_PREVIEW.mp4
+            chen_sheng_full/v82/preview_t*.jpg
+            chen_sheng_full/v82/qa_preview.json
+          retention-days: 30
+      - name: Publish prototype as reviewable release asset
+        if: success()
+        run: |
+          TAG="chen-sheng-v82-draft"
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "Chen Sheng V8.2 draft animation" --notes "Moving-map prototype. Editorial review pending; do not publish as final."
+          gh release upload "$TAG" chen_sheng_full/v82/ChenSheng_V82_12s_PREVIEW.mp4 chen_sheng_full/v82/qa_preview.json chen_sheng_full/v82/preview_t*.jpg --clobber
+  full:
+    needs: preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      GH_TOKEN: ${{ github.token }}
+      MODE: full
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install renderer
+        run: |
+          python -m pip install Pillow
+          python -m py_compile chen_sheng_full/render_v82.py
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-thai-tlwg
+      - name: Download measured narration times
+        run: |
+          mkdir -p chen_sheng_full/timing
+          gh run download 41647684315 -n ChenSheng-V82-Timing-QA -D chen_sheng_full/timing
+          test -s chen_sheng_full/timing/asr_segments.json
+      - name: Render all 402 seconds, 60fps, original audio and mascot
+        run: python chen_sheng_full/render_v82.py
+      - name: Store full film QA artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChenSheng-V82-full-60fps
+          path: |
+            chen_sheng_full/v82/ChenSheng_V82_FULL_60FPS.mp4
+            chen_sheng_full/v82/full_t*.jpg
+            chen_sheng_full/v82/qa_full.json
+          retention-days: 30
+      - name: Publish direct downloadable draft MP4
+        if: success()
+        run: |
+          TAG="chen-sheng-v82-draft"
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "Chen Sheng V8.2 draft animation" --notes "Moving map and ASR-draft captions; historical/editorial QA pending."
+          gh release upload "$TAG" chen_sheng_full/v82/ChenSheng_V82_FULL_60FPS.mp4 chen_sheng_full/v82/qa_full.json chen_sheng_full/v82/full_t*.jpg --clobber
