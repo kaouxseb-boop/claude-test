@@ -13,7 +13,10 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 W, H, FPS, SECONDS = 1080, 1920, 30, 5
-Z, TILE, WORLD = 6, 256, 256 * (2 ** 6)
+Z, TILE, WORLD = 7, 256, 256 * (2 ** 7)
+# Keep a full 3x map canvas so camera zooms do not enlarge a 1080p raster.
+UPSCALE = 3
+BW, BH = W * UPSCALE, H * UPSCALE
 OUT = Path("kra/output")
 OUT.mkdir(parents=True, exist_ok=True)
 TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
@@ -96,13 +99,15 @@ def mosaic():
         if image.size != (TILE, TILE):
             raise RuntimeError("Invalid tile " + str(pair))
         return (x, y, image)
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as pool:
         for x, y, image in pool.map(one, jobs):
             sheet.paste(image, ((x - x0) * TILE, (y - y0) * TILE))
     centre_source = (MID[0] - x0 * TILE, MID[1] - y0 * TILE)
-    affine = (1 / BASE_SCALE, 0, centre_source[0] - W / 2 / BASE_SCALE,
-              0, 1 / BASE_SCALE, centre_source[1] - H / 2 / BASE_SCALE)
-    return sheet.transform((W, H), Image.Transform.AFFINE, affine, resample=Image.Resampling.BICUBIC)
+    high_scale = BASE_SCALE * UPSCALE
+    affine = (1 / high_scale, 0, centre_source[0] - BW / 2 / high_scale,
+              0, 1 / high_scale, centre_source[1] - BH / 2 / high_scale)
+    # Base is 3240x5760: zooming into the Kra peninsula preserves source detail.
+    return sheet.transform((BW, BH), Image.Transform.AFFINE, affine, resample=Image.Resampling.BICUBIC)
 
 def polygons(geometry):
     if geometry["type"] == "Polygon":
@@ -113,8 +118,8 @@ def polygons(geometry):
 
 def borders():
     geo = json.loads(fetch(GEO_URL))
-    outline = Image.new("L", (W, H), 0)
-    tint = Image.new("L", (W, H), 0)
+    outline = Image.new("L", (BW, BH), 0)
+    tint = Image.new("L", (BW, BH), 0)
     d1 = ImageDraw.Draw(outline)
     d2 = ImageDraw.Draw(tint)
     wanted = {"India", "Myanmar", "Thailand", "Malaysia", "Bangladesh",
@@ -128,29 +133,34 @@ def borders():
         for ring in polygons(feature.get("geometry") or {}):
             if len(ring) < 3:
                 continue
-            coords = [base_xy(lon, lat) for lon, lat in ring]
-            if max(v[0] for v in coords) < -30 or min(v[0] for v in coords) > W + 30:
+            coords = [(x * UPSCALE, y * UPSCALE) for x, y in
+                      (base_xy(lon, lat) for lon, lat in ring)]
+            if max(v[0] for v in coords) < -30 * UPSCALE or min(v[0] for v in coords) > BW + 30 * UPSCALE:
                 continue
-            if max(v[1] for v in coords) < -30 or min(v[1] for v in coords) > H + 30:
+            if max(v[1] for v in coords) < -30 * UPSCALE or min(v[1] for v in coords) > BH + 30 * UPSCALE:
                 continue
-            d2.polygon(coords, fill=90)
-            d1.line(coords + [coords[0]], fill=180, width=2, joint="curve")
+            d2.polygon(coords, fill=58)
+            d1.line(coords + [coords[0]], fill=240, width=2 * UPSCALE, joint="curve")
             n += 1
     if n < 3:
         raise RuntimeError("Natural Earth polygons not parsed correctly")
     return outline, tint, n
 
 def backdrop(real_map, borders_mask, country_tint):
-    img = real_map.convert("RGBA")
-    bluegreen = Image.new("RGBA", (W, H), (40, 150, 132, 90))
-    img.paste(bluegreen, (0, 0), country_tint)
-    g = borders_mask.filter(ImageFilter.GaussianBlur(10))
-    glow = Image.new("RGBA", (W, H), (25, 238, 238, 0))
-    glow.putalpha(g)
-    img = Image.alpha_composite(img, glow)
-    crisp = Image.new("RGBA", (W, H), (180, 250, 227, 0))
-    crisp.putalpha(borders_mask)
-    return Image.alpha_composite(img, crisp).convert("RGB")
+    """Three independent cyan/white Jedi-glow layers over REAL satellite terrain."""
+    img = real_map.convert("RGB")
+    territory = Image.new("RGB", (BW, BH), (37, 133, 119))
+    img.paste(territory, (0, 0), country_tint.point(lambda x: int(x * 0.60)))
+    # Far-field bloom, concentrated neon and hairline white-cyan core.
+    far = borders_mask.filter(ImageFilter.GaussianBlur(12 * UPSCALE))
+    near = borders_mask.filter(ImageFilter.GaussianBlur(3 * UPSCALE))
+    far_color = Image.new("RGB", (BW, BH), (10, 225, 251))
+    near_color = Image.new("RGB", (BW, BH), (33, 249, 255))
+    core_color = Image.new("RGB", (BW, BH), (224, 255, 239))
+    img.paste(far_color, (0, 0), far.point(lambda x: int(x * 0.92)))
+    img.paste(near_color, (0, 0), near.point(lambda x: int(x * 0.89)))
+    img.paste(core_color, (0, 0), borders_mask)
+    return img
 
 def catmull(points, steps=26):
     result = []
@@ -179,8 +189,10 @@ def route(img, path, percentage, center, zoom, rgb):
     coords = [to_screen(p, center, zoom) for p in path[:count + 1]]
     gray = Image.new("L", (W, H), 0)
     ImageDraw.Draw(gray).line(coords, fill=255, width=7, joint="curve")
-    blur = gray.filter(ImageFilter.GaussianBlur(15))
-    img.paste(rgb, (0, 0), blur.point(lambda x: int(x * 0.72)))
+    far = gray.filter(ImageFilter.GaussianBlur(19))
+    near = gray.filter(ImageFilter.GaussianBlur(5))
+    img.paste(rgb, (0, 0), far.point(lambda x: int(x * 0.96)))
+    img.paste(rgb, (0, 0), near.point(lambda x: int(x * 0.94)))
     crisp = Image.new("L", (W, H), 0)
     ImageDraw.Draw(crisp).line(coords, fill=255, width=5, joint="curve")
     img.paste((241, 255, 254) if rgb[2] > rgb[0] else (255, 235, 151), (0, 0), crisp)
@@ -210,9 +222,11 @@ def text(draw, text, x, y, size, font_file, fill=(255,255,255), anchor="mm", str
 
 def frame(base, font_file, t):
     center, zoom = camera(t)
-    crop = (center[0] - W / (2 * zoom), center[1] - H / (2 * zoom),
-            center[0] + W / (2 * zoom), center[1] + H / (2 * zoom))
-    img = base.crop(crop).resize((W, H), Image.Resampling.BICUBIC).convert("RGB")
+    crop = ((center[0] - W / (2 * zoom)) * UPSCALE,
+            (center[1] - H / (2 * zoom)) * UPSCALE,
+            (center[0] + W / (2 * zoom)) * UPSCALE,
+            (center[1] + H / (2 * zoom)) * UPSCALE)
+    img = base.crop(crop).resize((W, H), Image.Resampling.LANCZOS).convert("RGB")
     sea_p = ease((t - 0.47) / 2.67)
     land_p = ease((t - 3.54) / 1.02)
     route(img, SEA_PTS, sea_p, center, zoom, (38, 226, 251))
@@ -261,7 +275,9 @@ def verify(mp4):
     assert not any(s["codec_type"]=="audio" for s in obj["streams"])
     report={"result":"file/decode QA PASS","seconds":SECONDS,"frames":FPS*SECONDS,
         "resolution":[W,H],"audio":"NONE (silent technical preview)",
-        "geography":"Esri World Imagery + Natural Earth GeoJSON",
+        "geography":"Esri World Imagery tiles z7 + Natural Earth GeoJSON",
+        "sharpness":"3x source canvas; LANCZOS final sampling; H.264 CRF16",
+        "jedi_border":"three layers: 12x/3x radius cyan blooms + sharp pale core",
         "routes":"illustrative interpretation, not ancient GPS",
         "branding":"original licensed logo/mascot not supplied in this repository",
         "human_viewing":"not yet independently confirmed",
@@ -283,7 +299,7 @@ def main():
          "-f","rawvideo","-pixel_format","rgb24","-video_size",f"{W}x{H}",
          "-framerate",str(FPS),"-i","pipe:0",
          "-an","-c:v","libx264","-pix_fmt","yuv420p",
-         "-preset","medium","-crf","18","-movflags","+faststart",str(mp4)]
+         "-preset","medium","-crf","16","-movflags","+faststart",str(mp4)]
     process=subprocess.Popen(cmd,stdin=subprocess.PIPE)
     sample=[]
     try:
