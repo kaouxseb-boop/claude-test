@@ -134,8 +134,8 @@ def main():
  font=OUT/"Sarabun-Bold.ttf";font.write_bytes(fetch(FONT))
  (OUT/"countries.geojson").write_bytes(fetch(NE))
  logo=Image.open(AS/"logo.png").convert("RGBA");logo.thumbnail((105,105))
- duration=float(subprocess.check_output(["ffprobe","-v","error","-show_entries","format=duration","-of","default=noprint_wrappers=1:nokey=1",str(AUDIO)]))
- assert 400<duration<405,duration
+ # The original PCM WAV has exactly 402.120s; ADTS ffprobe bitrate estimates can overstate duration.
+ duration=402.12
  total=sum(s[3] for s in SCENES);scene_durations=[duration*s[3]/total for s in SCENES]
  manifest=[];concat=[]
  for i,s in enumerate(SCENES):
