@@ -112,6 +112,23 @@ for i,u in enumerate(units,1):
  ass.append(f"Dialogue: 0,{ts(u['start'],True)},{ts(u['end'],True)},Pop,,0,0,0,,{effect}{display}\n")
  srt.extend([str(i),ts(u['start'])+' --> '+ts(u['end']),'\n'.join(ls),''])
  bounds.append(dict(index=i,lines=len(ls),fontsize=size,width=max(ImageFont.truetype(str(P/'assets/NotoSansThaiFull.ttf'),size).getlength(v) for v in ls),duration=u['end']-u['start']))
+# Put map labels in the final ASS layer so moving troops cannot cover city names.
+import sys
+sys.path.insert(0,str(P.parent))
+import render_v83 as maprender
+city_style='Style: City,Noto Sans Thai,36,&H00B0E8FF,&H00B0E8FF,&H20120E08,&H20120E08,-1,0,0,0,100,100,0,0,3,9,0,5,0,0,0,1\n'
+ass[0]=ass[0].replace('\n[Events]','\n'+city_style+'\n[Events]')
+for b in json.loads((P/'beats.json').read_text()):
+ cam=maprender.camera(b);keys=list(dict.fromkeys(b.get('show',[b['dest']])+([b['origin']] if b.get('origin') else [])+[b['dest']]))
+ used=[]
+ for k in keys:
+  x,y=maprender.point(k,cam)
+  if not (60<x<1020 and 270<y<1350):continue
+  ly=y-100
+  for ox,oy in used:
+   if abs(x-ox)<245 and abs(ly-oy)<65:ly+=185
+  used.append((x,ly));label=maprender.PLACES[k][0]
+  ass.append(f"Dialogue: 1,{ts(b['start'],True)},{ts(b['end'],True)},City,,0,0,0,,{{\\an5\\pos({x},{ly})}}{label}\n")
 (P/'captions.ass').write_text(''.join(ass));(P/'ChenSheng_V83_Thai.srt').write_text('\n'.join(srt))
 (P/'caption_units.json').write_text(json.dumps(units,ensure_ascii=False,indent=2))
 (P/'transcript_review.json').write_text(json.dumps(review,ensure_ascii=False,indent=2))
