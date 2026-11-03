@@ -184,14 +184,19 @@ def frame(base,icon,path,t):
         img=img.convert("RGBA")
         img.alpha_composite(shadow,(px+9,py+14))
         img.alpha_composite(scaled,(px,py))
-    # Bottom lower third: editorial text, not claimed as word-aligned subtitles.
+    # Compact timed subtitles, replacing the old permanent lower-third panel.
+    # Editorial cue timings for 5s test only; NOT word-level forced alignment.
     d=ImageDraw.Draw(img)
-    d.rounded_rectangle((25,H-322,W-25,H-147),radius=27,
-                        fill=(4,14,25,237),outline=(70,165,180,230),width=3)
-    txt(d,"ใครจะคิดว่า…",W/2,H-268,58,path,(255,255,255),"mm",4)
-    txt(d,"จักรวรรดิฉินจะเริ่มสั่นคลอน",W/2,H-197,43,path,(255,213,109),"mm",4)
-    txt(d,"แผนที่ฐานปัจจุบัน · หมุดโบราณเป็นตำแหน่งโดยประมาณ",W/2,H-90,24,path,
-        (211,230,232),"mm",2)
+    cues=[
+        (0.00,1.55,[("ใครจะคิดว่า…",(255,255,255))]),
+        (1.55,3.30,[("จักรวรรดิที่ยิ่งใหญ่",(255,255,255)),("ของจิ๋นซีฮ่องเต้",(255,211,103))]),
+        (3.30,5.00,[("จะเริ่มสั่นคลอน",(255,255,255)),("เพราะทหารเกณฑ์!",(255,211,103))]),
+    ]
+    cue=next((lines for start,end,lines in cues if start<=t<end),cues[-1][2])
+    line_height=61
+    base_y=H-224 if len(cue)==2 else H-191
+    for j,(line,color) in enumerate(cue):
+        txt(d,line,W/2,base_y+j*line_height,49,path,color,"mm",5)
     d.rectangle((0,H-7,int(W*t/SECONDS),H),fill=(62,233,247))
     return img.convert("RGB")
 
@@ -216,7 +221,7 @@ def qa(mp4):
       "sharpness":"3240x5760 source, LANCZOS downsample, H.264 CRF16",
       "audio":"first 5s excerpt from user-supplied Chen Sheng original WAV encoded AAC",
       "branding":"original channel logo/mascot unavailable; technical preview only",
-      "subtitles":"intro editorial lower third; no claim of speech-level ASR alignment",
+      "subtitles":"compact timed 1-2 line cues, no large lower-third; editorial timing pending speech alignment",
       "AI_icon":"generated historical 2D Chen Sheng PNG with transparency",
       "mp4_sha256":hashlib.sha256(mp4.read_bytes()).hexdigest()}
     (OUT/"qa.json").write_text(json.dumps(report,indent=2,ensure_ascii=False),encoding="utf-8")
