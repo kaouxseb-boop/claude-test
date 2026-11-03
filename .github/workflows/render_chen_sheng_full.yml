@@ -1,0 +1,48 @@
+name: Render Chen Sheng full V8 60fps with mascot
+on:
+  push:
+    paths:
+      - 'chen_sheng_full/render_full.py'
+      - '.github/workflows/render_chen_sheng_full.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate source and install
+        run: |
+          python -m pip install Pillow
+          python -m py_compile chen_sheng_full/render_full.py
+          ffmpeg -version | head -1
+          test -f chen_sheng_full/assets/logo.png
+          test "$(find chen_sheng_full/assets -name 'audio.part*' | wc -l)" = "5"
+          test "$(find chen_sheng_full/assets -name 'mascot.part*' | wc -l)" = "12"
+      - name: Produce entire 402-second narrated map film
+        run: python chen_sheng_full/render_full.py
+      - name: Publish QA artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChenSheng-Full-V8-60FPS
+          path: |
+            chen_sheng_full/output/ChenSheng_Full_V8_60FPS.mp4
+            chen_sheng_full/output/qa.json
+            chen_sheng_full/output/storyboard.json
+            chen_sheng_full/output/middle.jpg
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Publish direct-download MP4 in project release
+        if: success()
+        run: |
+          TAG="chen-sheng-v8-full-60fps"
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "Chen Sheng V8 full 60 FPS" --notes "Full narration and animated channel mascot. Editorial subtitle alignment remains pending."
+          gh release upload "$TAG" chen_sheng_full/output/ChenSheng_Full_V8_60FPS.mp4 chen_sheng_full/output/qa.json chen_sheng_full/output/middle.jpg --clobber
