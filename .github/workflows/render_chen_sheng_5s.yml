@@ -1,0 +1,61 @@
+name: Render Chen Sheng V8 5s audio preview
+on:
+  push:
+    paths:
+      - 'chen_sheng/render.py'
+      - 'chen_sheng/assets/**'
+      - 'chen_sheng/README.md'
+      - '.github/workflows/render_chen_sheng_5s.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install Pillow
+          if ! command -v ffmpeg >/dev/null; then sudo apt-get update && sudo apt-get install -y ffmpeg; fi
+          python -m py_compile chen_sheng/render.py
+          ffmpeg -version | head -1
+      - name: Render V8 high definition 5 sec with original narration excerpt
+        run: python chen_sheng/render.py
+      - name: Upload deliverables
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Chen-Sheng-V8-5s-PREVIEW
+          path: |
+            chen_sheng/output/V8_ChenSheng_5sec_PREVIEW.mp4
+            chen_sheng/output/contact_sheet.jpg
+            chen_sheng/output/qa.json
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Publish verified preview without overwriting other projects
+        if: success()
+        run: |
+          mkdir -p chen_sheng/preview
+          cp chen_sheng/output/V8_ChenSheng_5sec_PREVIEW.mp4 chen_sheng/preview/
+          cp chen_sheng/output/contact_sheet.jpg chen_sheng/preview/
+          cp chen_sheng/output/qa.json chen_sheng/preview/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add chen_sheng/preview/
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish verified Chen Sheng V8 five-second preview"
+            for attempt in 1 2 3; do
+              git fetch origin main
+              git rebase origin/main
+              if git push origin HEAD:main; then break; fi
+              if [ "$attempt" = 3 ]; then exit 1; fi
+              sleep 3
+            done
+          fi
