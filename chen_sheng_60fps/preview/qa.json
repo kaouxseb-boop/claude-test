@@ -16,7 +16,7 @@
   "sharpness": "3240x5760 source, LANCZOS downsample, H.264 CRF16",
   "audio": "first 5s excerpt from user-supplied Chen Sheng original WAV encoded AAC",
   "branding": "original channel logo/mascot unavailable; technical preview only",
-  "subtitles": "compact timed 1-2 line cues, no large lower-third; editorial timing pending speech alignment",
+  "subtitles": "raised compact 1-2 line cues with 0.18-second pop; editorial timing pending speech alignment",
   "AI_icon": "generated historical 2D Chen Sheng PNG with transparency",
-  "mp4_sha256": "ffccbf2de561bea34be45865b1f4c85d588369da11c8040f542b97aba0398250"
+  "mp4_sha256": "1e29b05f0cb7e2ead9bf443c4946cee918bc3d44bce14745af1d1dc4de5c1cb5"
 }
