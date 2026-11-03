@@ -50,5 +50,17 @@ jobs:
           git add kra/preview/
           if ! git diff --cached --quiet; then
             git commit -m "Publish verified 5s India-Kra real-map preview"
-            git push
+            # Another workflow may publish to main while this render is running.
+            # Rebase our own preview commit; never force-push or overwrite other work.
+            for attempt in 1 2 3; do
+              git fetch origin main
+              git rebase origin/main
+              if git push origin HEAD:main; then
+                break
+              fi
+              if [ "$attempt" = 3 ]; then
+                exit 1
+              fi
+              sleep 3
+            done
           fi
