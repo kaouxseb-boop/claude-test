@@ -173,12 +173,12 @@ def frame(base,icon,path,t):
     if t>1.85:
         # AI image-generated PNG with transparent alpha; never a programmatic clip-art substitute.
         p=ease((t-1.85)/0.58)
-        iw=390
+        iw=300
         ih=round(icon.height*(iw/icon.width))
         scaled=icon.resize((iw,ih),Image.Resampling.LANCZOS)
         a=scaled.getchannel("A").point(lambda v:int(v*p*0.96))
         scaled.putalpha(a)
-        px,py=650,860+int((1-p)*55)
+        px,py=730,1055+int((1-p)*55)
         shadow=Image.new("RGBA",(iw,ih),(0,0,0,0))
         shadow.putalpha(a.filter(ImageFilter.GaussianBlur(23)).point(lambda v:int(v*.58)))
         img=img.convert("RGBA")
