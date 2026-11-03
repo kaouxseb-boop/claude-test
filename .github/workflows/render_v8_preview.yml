@@ -1,0 +1,48 @@
+name: Render Holodomor Map Story V8 — 5s visual test
+on:
+  push:
+    paths:
+      - 'render_preview_v8.py'
+      - '.github/workflows/render_v8_preview.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out public render code
+        uses: actions/checkout@v4
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install renderer dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install Pillow
+          if ! command -v ffmpeg >/dev/null; then sudo apt-get update && sudo apt-get install -y ffmpeg; fi
+      - name: Doctor — tools and input rules
+        run: |
+          python - <<'PY'
+          import shutil, sys
+          from PIL import Image, features
+          assert shutil.which("ffmpeg"), "Missing ffmpeg"
+          assert shutil.which("ffprobe"), "Missing ffprobe"
+          assert sys.version_info >= (3,11)
+          print("Python:",sys.version)
+          print("Pillow:",Image.__version__)
+          print("RAQM:",features.check("raqm"))
+          print("ffmpeg:",shutil.which("ffmpeg"))
+          PY
+      - name: Produce five-second GIS + satellite animation
+        run: python render_preview_v8.py
+      - name: Upload MP4 plus encoded-frame QA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: holodomor-v8-5sec-preview
+          path: dist/
+          if-no-files-found: warn
+          retention-days: 30
