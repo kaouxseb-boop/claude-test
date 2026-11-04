@@ -7,12 +7,16 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 P=Path(__file__).resolve().parent; OLD=P.parent/'v83'; F=P/'ChenSheng_V84_FULL_60FPS_REVIEW.mp4'
-def probe(p):return json.loads(subprocess.check_output(['ffprobe','-v','error','-count_frames','-show_streams','-show_format','-of','json',str(p)]))
+def probe(p):return json.loads(subprocess.check_output(['ffprobe','-v','error','-show_streams','-show_format','-of','json',str(p)]))
 def audiohash(p):return subprocess.check_output(['ffmpeg','-v','error','-i',str(p),'-map','0:a:0','-f','hash','-hash','sha256','-']).decode().strip()
 q=probe(F);v=next(s for s in q['streams'] if s['codec_type']=='video')
-assert (v['width'],v['height'],v['avg_frame_rate'],v['nb_read_frames'])==(1080,1920,'60/1','24127'),v
-result=subprocess.run(['ffmpeg','-v','error','-i',str(F),'-f','null','-'],capture_output=True,text=True)
+assert (v['width'],v['height'],v['avg_frame_rate'],v['nb_frames'])==(1080,1920,'60/1','24127'),v
+print('metadata checked; decoding complete file',flush=True)
+result=subprocess.run(['ffmpeg','-v','error','-threads','4','-i',str(F),'-progress',str(P/'decode_progress.txt'),'-f','null','-'],capture_output=True,text=True)
 assert result.returncode==0 and not result.stderr.strip(),result.stderr
+progress=(P/'decode_progress.txt').read_text()
+assert 'progress=end' in progress and 'frame=24127' in progress
+print('all 24127 frames decoded; checking complete narration',flush=True)
 expected=audiohash(OLD/'narration_reference.m4a');actual=audiohash(F)
 if expected!=actual:
  repaired=F.with_name('audio_restored_v84.mp4')
@@ -20,6 +24,7 @@ if expected!=actual:
  assert audiohash(repaired)==expected
  repaired.replace(F);actual=expected;q=probe(F)
 assert abs(float(q['format']['duration'])-402.12)<.05
+print('complete narration verified; extracting encoded event frames',flush=True)
 events=json.loads((P/'visual_events.json').read_text());beats=json.loads((OLD/'beats.json').read_text())
 # At least one encoded frame per event and every scene. Frame time falls after entry motion.
 times=sorted(set(round(e['time']+.4,3) for e in events)|set(round(b['start']+.7,3) for b in beats))
