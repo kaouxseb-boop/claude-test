@@ -8,6 +8,7 @@ import json
 import math
 import os
 import subprocess
+import uuid
 from pathlib import Path
 
 import numpy as np
@@ -62,7 +63,7 @@ def nframes(p):
 def sprite(name,width):
  im=Image.open(A/(name+'.png')).convert('RGBA');im.thumbnail((width,width),Image.Resampling.LANCZOS);return im
 def save_png(im,path):
- temporary=path.with_name(path.stem+'.building.png');im.save(temporary,format='PNG')
+ temporary=path.with_name(path.stem+'.'+uuid.uuid4().hex+'.building.png');im.save(temporary,format='PNG')
  with Image.open(temporary) as verify:verify.load()
  os.replace(temporary,path)
 def tx(d,xy,s,n=36,fill=(255,241,205),anchor='mm'):
@@ -158,7 +159,7 @@ def event_plate(name,label,index):
  p=OUT/f'event_{index:03}.png';save_png(im,p);return p
 def badge(name,side):
  p=OUT/f'badge_{name}_{side}.png'
- if p.exists():return p
+ if p.exists() and os.environ.get('REMAKE_BADGES')!='1':return p
  c=RED if side=='rebel' else GOLD;sp=sprite(name,205);im=Image.new('RGBA',(240,260));d=ImageDraw.Draw(im)
  d.ellipse((20,23,220,220),fill=(3,12,20,95),outline=(*c,230),width=5);im.alpha_composite(sp,((240-sp.width)//2,34));d=ImageDraw.Draw(im);d.rounded_rectangle((36,220,204,255),radius=9,fill=(*c,240));d.text((120,237),'กบฏ' if side=='rebel' else 'ฉิน',font=font(25),fill=(12,15,20),anchor='mm');save_png(im,p);return p
 def impact_plate():
@@ -171,7 +172,7 @@ def impact_plate():
  d.ellipse((120,120,220,220),outline=(255,241,180,255),width=7);save_png(im,p);return p
 def scene(i,b):
  nf=round(b['end']*FPS)-round(b['start']*FPS);dur=nf/FPS;target=OUT/f'seg_{i:02}.mp4';stamp=OUT/f'seg_{i:02}.version'
- if target.exists() and stamp.exists() and stamp.read_text()==VERSION and nframes(target)==nf:return target
+ if target.exists() and stamp.exists() and stamp.read_text()==VERSION and os.environ.get('FORCE')!='1' and nframes(target)==nf:return target
  args=['-f','image2','-loop','1','-framerate',FPS,'-t',f'{dur:.6f}','-probesize','32','-analyzeduration','0','-c:v','png','-i',OUT/f'base_{i:02}_before.png'];f=[];cur='0:v';stream=1
  def add(path):
   nonlocal stream
@@ -222,8 +223,8 @@ def scene(i,b):
  # Rain is an event-local effect and does not move the map camera.
  if i==6:
   f.append(f'[{cur}]drawgrid=w=120:h=170:t=1:c=0x7FCBE2@0.06[vweather]');cur='vweather'
- building=target.with_suffix('.building.mp4')
- run(['ffmpeg','-hide_banner','-loglevel','error','-y']+args+['-filter_complex_threads','1','-filter_complex',';'.join(f),'-map',f'[{cur}]','-frames:v',nf,'-an','-c:v','libx264','-threads','3','-preset','veryfast','-crf','17','-pix_fmt','yuv420p',building])
+ building=target.with_name(target.stem+'.'+uuid.uuid4().hex+'.building.mp4')
+ run(['ffmpeg','-hide_banner','-loglevel','error','-y']+args+['-filter_complex_threads','1','-filter_complex',';'.join(f),'-map',f'[{cur}]','-frames:v',nf,'-an','-c:v','libx264','-threads','3','-preset','veryfast','-crf','17','-pix_fmt','yuv420p','-movflags','+faststart',building])
  assert nframes(building)==nf;os.replace(building,target);stamp.write_text(VERSION);print('scene',i,'done',nf,flush=True);return target
 def assemble():
  concat=OUT/'concat_v84.txt';concat.write_text(''.join(f"file '{(OUT/f'seg_{i:02}.mp4').as_posix()}'\n" for i in range(len(BEATS))))
@@ -234,6 +235,11 @@ def main():
  if os.environ.get('PREP_ONLY')=='1':prepare();return
  if os.environ.get('ONLY') is not None:
   i=int(os.environ['ONLY']);scene(i,BEATS[i]);return
- with concurrent.futures.ThreadPoolExecutor(max_workers=2) as ex:list(ex.map(lambda p:scene(*p),enumerate(BEATS)))
+ for i,b in enumerate(BEATS):
+  for attempt in range(3):
+   try:scene(i,b);break
+   except (subprocess.CalledProcessError,AssertionError) as error:
+    print('incomplete segment',i,'attempt',attempt+1,'will rebuild',flush=True)
+    if attempt==2:raise
  if os.environ.get('PARTS_ONLY')!='1':assemble()
 if __name__=='__main__':main()
