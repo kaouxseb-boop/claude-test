@@ -2,6 +2,11 @@ import json,re,difflib,hashlib
 from pathlib import Path
 from PIL import ImageFont
 from pythainlp.tokenize import word_tokenize
+from pythainlp.corpus.common import thai_words
+from pythainlp.util import Trie
+NAMES=['เฉินเซิ่ง','อู๋กว่าง','จิ๋นซีฮ่องเต้','ฉินเอ้อร์ซื่อ','ราชวงศ์ฉิน','จางหาน','โจวเหวิน','เถียนจาง','ลวี่เฉิน','จวงเจี่ย','เซี่ยงอวี่','หลิวปัง','หลี่โหยว','ต้าเจ๋อเซียง','เซี่ยเฉิงฝู่','อ๋าวชาง','สิงหยาง','เสียนหยาง','อวี๋หยาง','จวี้ลู่','เหมี่ยนฉือ','เฉาหยาง','ด่านหานกู่','จางฉู่','ซูโจว','ปั๋วโจว','หวยหยาง']
+DICT=Trie(set(thai_words())|set(NAMES))
+def tokenize(t,keep_whitespace=False):return word_tokenize(t,engine='newmm',custom_dict=DICT,keep_whitespace=keep_whitespace)
 P=Path(__file__).resolve().parent
 raw=json.loads((P/'asr_turbo.json').read_text());segments=raw['segments'];words=raw['words']
 # Remove one overlapping ASR repeat. These are recognition outputs, not an edit to audio.
@@ -42,7 +47,7 @@ for s in segments:
    bb=times[min(max(a,b-1),len(times)-1)][1]
    if b==a and a>0:aa,bb=times[a-1]
    for k in range(c,d):mapping[k]=(aa,max(aa,bb))
- tokens=word_tokenize(t,engine='newmm',keep_whitespace=True)
+ tokens=tokenize(t,keep_whitespace=True)
  pos=0;timed=[]
  for token in tokens:
   n=len(clean(token))
@@ -79,7 +84,7 @@ for i,u in enumerate(units):
  if u['end']<=u['start']:u['end']=min(u['start']+.04,units[i+1]['start']) if i+1<len(units) else u['start']+.04
 
 def lines(t,size=74):
- f=ImageFont.truetype(str(P/'assets/NotoSansThaiFull.ttf'),size);ws=word_tokenize(t,engine='newmm',keep_whitespace=True);ls=['']
+ f=ImageFont.truetype(str(P/'assets/NotoSansThaiFull.ttf'),size);ws=tokenize(t,keep_whitespace=True);ls=['']
  for w in ws:
   if f.getlength(ls[-1]+w)>760 and ls[-1]:ls.append(w)
   else:ls[-1]+=w
@@ -115,7 +120,7 @@ for i,u in enumerate(units,1):
  for key in sorted(cyan_keys,key=len,reverse=True):display=display.replace(key,r'{\c&H00FFD37A&}'+key+r'{\c&H00FFFFFF&}')
  if r'{\c&' not in display:
   stop={'และ','หรือ','แต่','เพราะ','ที่','ของ','เป็น','ได้','ให้','จาก','ไป','มา','ก็','จะ','ว่า','เมื่อ','แล้ว','ไม่','อยู่','อย่าง','จึง'}
-  candidates=[v.strip() for v in word_tokenize(u['text'],engine='newmm') if v.strip() not in stop and len(v.strip())>=2]
+  candidates=[v.strip() for v in tokenize(u['text']) if v.strip() not in stop and len(v.strip())>=2]
   if candidates:
    key=max(candidates,key=len);display=display.replace(key,r'{\c&H007DEBFF&}'+key+r'{\c&H00FFFFFF&}',1)
  effect=r'{\an2\pos(540,1460)\fs'+str(size)+r'\fscx130\fscy130\t(0,90,\fscx96\fscy96)\t(90,170,\fscx106\fscy106)\t(170,250,\fscx100\fscy100)}'
