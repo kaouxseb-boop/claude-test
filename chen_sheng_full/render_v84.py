@@ -75,6 +75,7 @@ def controlled(b,after):
  if after and b.get('capture'):
   if b.get('side')=='qin':s.discard(b['dest'])
   else:s.add(b['dest'])
+  if b['dest']=='zhe':s.add('ku')
  return s
 def city_color(k,s):
  i=sorted(old.PLACES).index(k);return RED_SHADES[i%len(RED_SHADES)] if k in s else GOLD_SHADES[i%len(GOLD_SHADES)]
