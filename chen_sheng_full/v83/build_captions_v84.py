@@ -5,6 +5,7 @@ from pythainlp.tokenize import word_tokenize
 from pythainlp.corpus.common import thai_words
 from pythainlp.util import Trie
 NAMES=['เฉินเซิ่ง','อู๋กว่าง','จิ๋นซีฮ่องเต้','ฉินเอ้อร์ซื่อ','ราชวงศ์ฉิน','จางหาน','โจวเหวิน','เถียนจาง','ลวี่เฉิน','จวงเจี่ย','เซี่ยงอวี่','หลิวปัง','หลี่โหยว','ต้าเจ๋อเซียง','เซี่ยเฉิงฝู่','อ๋าวชาง','สิงหยาง','เสียนหยาง','อวี๋หยาง','จวี้ลู่','เหมี่ยนฉือ','เฉาหยาง','ด่านหานกู่','จางฉู่','ซูโจว','ปั๋วโจว','หวยหยาง']
+NAMES+=['เจ้อเฉิง','ลู่อี้','หย่งเฉิง','เหอหนาน','อันฮุย','หลี่ซือ','ปักกิ่ง','หลีซาน','จิ๋นซี','เฉียว','เมืองเฉิน','เมืองฉี','เมืองจื้อ','เมืองจ้าน','เมืองขู่','เมืองเจ้อ','เมืองเฉียว','เฉิน','หานกู่','อู่กวน']
 DICT=Trie(set(thai_words())|set(NAMES))
 def tokenize(t,keep_whitespace=False):return word_tokenize(t,engine='newmm',custom_dict=DICT,keep_whitespace=keep_whitespace)
 P=Path(__file__).resolve().parent
