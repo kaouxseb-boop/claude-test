@@ -229,7 +229,7 @@ def scene(i,b):
  assert nframes(building)==nf;os.replace(building,target);stamp.write_text(VERSION);print('scene',i,'done',nf,flush=True);return target
 def assemble():
  concat=OUT/'concat_v84.txt';concat.write_text(''.join(f"file '{(OUT/f'seg_{i:02}.mp4').as_posix()}'\n" for i in range(len(BEATS))))
- output=OUT/'ChenSheng_V84_FULL_60FPS_REVIEW.mp4'
+ output=Path(os.environ.get('V84_OUTPUT',str(OUT/'ChenSheng_V84_FULL_60FPS_REVIEW.mp4')))
  run(['ffmpeg','-hide_banner','-loglevel','error','-y','-safe','0','-f','concat','-i',concat,'-i',V83/'narration_reference.m4a','-stream_loop','-1','-c:v','libvpx-vp9','-i',A/'mascot.webm','-filter_complex_threads','1','-filter_complex',f"[0:v]ass=filename={OUT/'captions_v84.ass'}:fontsdir={A}[sub];[2:v]scale=195:-1,format=rgba[mas];[sub][mas]overlay=W-w-28:H-h-25:shortest=0,format=yuv420p[v]",'-map','[v]','-map','1:a:0','-c:v','libx264','-threads','6','-preset','veryfast','-crf','17','-c:a','copy','-frames:v',round(D*FPS),'-movflags','+faststart','-progress',OUT/'mux_progress.txt',output]);print('OUTPUT',output,flush=True)
 def main():
  OUT.mkdir(exist_ok=True)
