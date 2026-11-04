@@ -7,7 +7,14 @@ from pythainlp.util import Trie
 NAMES=['เฉินเซิ่ง','อู๋กว่าง','จิ๋นซีฮ่องเต้','ฉินเอ้อร์ซื่อ','ราชวงศ์ฉิน','จางหาน','โจวเหวิน','เถียนจาง','ลวี่เฉิน','จวงเจี่ย','เซี่ยงอวี่','หลิวปัง','หลี่โหยว','ต้าเจ๋อเซียง','เซี่ยเฉิงฝู่','อ๋าวชาง','สิงหยาง','เสียนหยาง','อวี๋หยาง','จวี้ลู่','เหมี่ยนฉือ','เฉาหยาง','ด่านหานกู่','จางฉู่','ซูโจว','ปั๋วโจว','หวยหยาง']
 NAMES+=['เจ้อเฉิง','ลู่อี้','หย่งเฉิง','เหอหนาน','อันฮุย','หลี่ซือ','ปักกิ่ง','หลีซาน','จิ๋นซี','เฉียว','เมืองเฉิน','เมืองฉี','เมืองจื้อ','เมืองจ้าน','เมืองขู่','เมืองเจ้อ','เมืองเฉียว','เฉิน','หานกู่','อู่กวน']
 DICT=Trie(set(thai_words())|set(NAMES))
-def tokenize(t,keep_whitespace=False):return word_tokenize(t,engine='newmm',custom_dict=DICT,keep_whitespace=keep_whitespace)
+NAME_PATTERN=re.compile('('+'|'.join(re.escape(x) for x in sorted(set(NAMES),key=len,reverse=True))+')')
+def tokenize(t,keep_whitespace=False):
+ result=[]
+ for part in NAME_PATTERN.split(t):
+  if not part:continue
+  if part in NAMES:result.append(part)
+  else:result.extend(word_tokenize(part,engine='newmm',custom_dict=DICT,keep_whitespace=keep_whitespace))
+ return result
 P=Path(__file__).resolve().parent
 raw=json.loads((P/'asr_turbo.json').read_text());segments=raw['segments'];words=raw['words']
 # Remove one overlapping ASR repeat. These are recognition outputs, not an edit to audio.
