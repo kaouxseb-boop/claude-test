@@ -22,6 +22,7 @@ for f in (P/'assets').iterdir():
  if f.is_file() and f.suffix in {'.png','.webm','.ttf','.txt','.json'} and f.name!='generated_contact.png':files.append(f)
 for name in ['captions_v84.ass','ChenSheng_V84_Thai.srt','caption_units_v84.json','caption_qa_v84.json','transcript_review_v84.json','label_positions.json','visual_events.json','QA_V84.json','RESUME_V84.json']:files.append(P/name)
 files.extend(sorted(P.glob('encoded_contact_*.jpg')))
+files.extend(sorted(P.glob('regression_*.jpg')))
 delivery=ROOT.parents[1]/'delivery';delivery.mkdir(exist_ok=True)
 target=delivery/'ChenSheng_V84_Media_Timing_Resume.zip'
 with zipfile.ZipFile(target,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=6) as z:
